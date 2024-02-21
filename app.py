@@ -1,3 +1,5 @@
+# https://github.com/keithtjunior/TwitterCloneExercise
+
 import os
 
 from flask import Flask, render_template, request, flash, redirect, session, g
@@ -17,8 +19,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
     os.environ.get('DATABASE_URL', 'postgresql:///warbler'))
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['SQLALCHEMY_ECHO'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
 
@@ -112,8 +114,9 @@ def login():
 @app.route('/logout')
 def logout():
     """Handle logout of user."""
-
-    # IMPLEMENT THIS
+    do_logout()
+    flash("You are currently logged out.", "info")
+    return redirect('/')
 
 
 ##############################################################################
@@ -202,6 +205,7 @@ def stop_following(follow_id):
 
     followed_user = User.query.get(follow_id)
     g.user.following.remove(followed_user)
+    import pdb;  pdb.set_trace()
     db.session.commit()
 
     return redirect(f"/users/{g.user.id}/following")
