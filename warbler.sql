@@ -1,0 +1,5 @@
+DROP DATABASE IF EXISTS warbler WITH (FORCE); 
+
+CREATE DATABASE warbler;
+
+\c warbler
