@@ -52,7 +52,7 @@ class MessageViewTestCase(TestCase):
         db.session.commit()
 
     def test_add_message(self):
-        """Can use add a message?"""
+        """Can user add a message?"""
 
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
@@ -71,3 +71,75 @@ class MessageViewTestCase(TestCase):
 
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
+
+
+    def test_messages_show(self):
+        """Is message shown?"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            msg = Message(text='Hello', user_id=self.testuser.id)
+
+            db.session.add(msg)
+            db.session.commit()
+
+            resp = c.get(f'/messages/{msg.id}')
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<div class="message-area">', html)
+
+
+    def test_messages_destroy(self):
+        """Can user delete a message?"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            msg = Message(text='Hello', user_id=self.testuser.id)
+
+            db.session.add(msg)
+            db.session.commit()
+
+            resp = c.post(f'/messages/{msg.id}/delete', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<ul class="user-stats nav nav-pills">', html)
+
+
+    def test_add_message_unauth(self):
+        """Can unauth user add a message"""
+
+        resp = self.client.post('/messages/new', data={'text': 'Hello'})
+
+        self.assertEqual(resp.status_code, 302)
+
+        resp = self.client.post('/messages/new', data={'text': 'Hello'}, 
+                                follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('<a href="/signup" class="btn btn-primary">Sign up</a>', html)
+
+
+    def test_messages_destroy_unauth(self):
+        """Can unauth user delete a message"""
+
+        msg = Message(text='Hello', user_id=self.testuser.id)
+
+        db.session.add(msg)
+        db.session.commit()
+
+        resp = self.client.post(f'/messages/{msg.id}/delete')
+
+        self.assertEqual(resp.status_code, 302)
+
+        resp = self.client.post(f'/messages/{msg.id}/delete', follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('<a href="/signup" class="btn btn-primary">Sign up</a>', html)
