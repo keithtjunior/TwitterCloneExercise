@@ -313,7 +313,7 @@ def messages_destroy(message_id):
 
 
 @app.route('/users/add_like/<int:message_id>', methods=["POST"])
-def like_message(message_id):
+def add_like(message_id):
     """Like a message."""
 
     if not g.user:
@@ -336,6 +336,25 @@ def like_message(message_id):
         db.session.commit()
 
     return redirect(request.referrer)
+
+
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Show list of likes from this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    curr_likes = [like.id for like in user.likes]
+    messages = (Message
+                .query
+                .filter(Message.id.in_(curr_likes))
+                .order_by(Message.timestamp.desc())
+                .all())
+    
+    return render_template('users/likes.html', user=user, messages=messages)
 
 
 ##############################################################################
