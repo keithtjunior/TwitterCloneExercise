@@ -52,7 +52,7 @@
               <p>{{ msg.text }}</p>
             </div>
             {% if msg.user.id != session['curr_user'] %}
-              <form method="POST" action="/users/add_like/{{ msg.id }}" id="messages-form">
+              <form method="POST" action="/users/likes/{{ msg.id }}" id="messages-form">
                 <button class="
                   btn 
                   btn-sm 

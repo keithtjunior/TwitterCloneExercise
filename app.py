@@ -309,10 +309,10 @@ def messages_destroy(message_id):
 
 
 ##############################################################################
-# Like message routes
+# Likes routes
 
 
-@app.route('/users/add_like/<int:message_id>', methods=["POST"])
+@app.route('/users/likes/<int:message_id>', methods=["POST"])
 def add_like(message_id):
     """Like a message."""
 
@@ -347,10 +347,10 @@ def show_likes(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    curr_likes = [like.id for like in user.likes]
+    curr_likes_ids = [like.id for like in user.likes]
     messages = (Message
                 .query
-                .filter(Message.id.in_(curr_likes))
+                .filter(Message.id.in_(curr_likes_ids))
                 .order_by(Message.timestamp.desc())
                 .all())
     
