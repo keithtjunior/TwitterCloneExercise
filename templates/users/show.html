@@ -16,6 +16,17 @@
             <a href="/users/{{ user.id }}">@{{ user.username }}</a>
             <span class="text-muted">{{ message.timestamp.strftime('%d %B %Y') }}</span>
             <p>{{ message.text }}</p>
+            {% if message.user.id != session['curr_user'] %}
+              <form method="POST" action="/users/add_like/{{ message.id }}" id="messages-form">
+                <button class="
+                  btn 
+                  btn-sm 
+                  {{'btn-primary' if message.id in likes else 'btn-secondary'}}"
+                >
+                  <i class="{{ 'fa' if message.likes else 'far' }} fa-star"></i>
+                </button>
+              </form>
+            {% endif %}
           </div>
         </li>
 
