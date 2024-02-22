@@ -41,8 +41,12 @@
                     btn-sm 
                     {{'btn-primary' if message.id in likes else 'btn-secondary'}}"
                   >
-                    <i class="{{ 'fa' if message.likes else 'far' }} fa-star"></i>
-                  </button>
+                  {% for user in message.likes if user.id == session['curr_user'] %}
+                      <i class="fa fa-star"></i>
+                  {% else %}
+                      <i class="far fa-star"></i>
+                  {% endfor %}
+                </button>
                 </form>
               </div>
             {% endif %}
