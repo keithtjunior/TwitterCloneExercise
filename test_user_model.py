@@ -10,7 +10,7 @@ import bcrypt
 from unittest import TestCase
 
 from models import db, User, Message, Follows
-from app import app, CURR_USER_KEY
+from app import app
 from sqlalchemy import exc
 
 
