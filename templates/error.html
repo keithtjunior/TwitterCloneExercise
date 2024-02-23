@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="row">
+    <div class="col">
+        <div class="card text-center error-card">
+            <div class="card-header">Page Not Found</div>
+            <div class="card-body">
+                <h1 class="card-title">Oops!</h1>
+                <p class="card-text">{{e}}</p>
+                <p>Click the button below to return to the home page</p>
+                <a href="/" class="btn btn-outline-primary">Home</a>
+            </div>
+        </div>
+    </div>
+  </div>
+{% endblock %}

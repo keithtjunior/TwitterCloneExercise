@@ -30,6 +30,9 @@ connect_db(app)
 ##############################################################################
 # User signup/login/logout
 
+@app.errorhandler(404) 
+def not_found(e): 
+    return render_template('error.html', e=e)
 
 @app.before_request
 def add_user_to_g():
