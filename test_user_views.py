@@ -16,21 +16,6 @@ app.config['WTF_CSRF_ENABLED'] = False
 
 connect_db(app)
 
-# TEST USERS
-USERS = [
-    User(username="testuser2",
-        email="test2@test.com",
-        password="HASHED_PASSWORD",
-        image_url=None),
-    User(username="testuser3",
-        email="test3@test.com",
-        password="HASHED_PASSWORD",
-        image_url=None),
-    User(username="testuser4",
-        email="test4@test.com",
-        password="HASHED_PASSWORD",
-        image_url=None),
-]
 
 class UserViewTestCase(TestCase):
     """Test views for users."""
@@ -44,9 +29,6 @@ class UserViewTestCase(TestCase):
 
         self.client = app.test_client()
 
-        # for user in USERS:
-        #     db.session.add(user)
-
         self.testuser = User.signup(username="testuser",
                                     email="test@test.com",
                                     password="HASHED_PASSWORD",
@@ -55,22 +37,20 @@ class UserViewTestCase(TestCase):
                             email="test2@test.com",
                             password="HASHED_PASSWORD",
                             image_url=None)
-        self.testuser3 = User(username="testuser3",
-                            email="test3@test.com",
-                            password="HASHED_PASSWORD",
-                            image_url=None)
-        self.testuser4 = User(username="testuser4",
-                            email="test4@test.com",
-                            password="HASHED_PASSWORD",
-                            image_url=None)
         
-        db.session.add_all([self.testuser2, self.testuser3, self.testuser4])
+        db.session.add(self.testuser2)
         db.session.commit()
 
         self.user_id_1 = self.testuser.id
         self.user_id_2 = self.testuser2.id
-        self.user_id_3 = self.testuser3.id
-        self.user_id_4 = self.testuser4.id
+
+        f = Follows(
+                user_being_followed_id=self.user_id_2,
+                user_following_id=self.user_id_1
+            )
+
+        db.session.add(f)
+        db.session.commit()
 
 
     def tearDown(self):
@@ -104,7 +84,7 @@ class UserViewTestCase(TestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.user_id_1
 
-            resp = self.client.get('/', follow_redirects=True)
+            resp = c.get('/', follow_redirects=True)
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
@@ -118,7 +98,7 @@ class UserViewTestCase(TestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.user_id_1
 
-            resp = self.client.get('/users')
+            resp = c.get('/users')
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
@@ -132,7 +112,7 @@ class UserViewTestCase(TestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.user_id_1
 
-            resp = self.client.get(f'/users/{self.user_id_2}')
+            resp = c.get(f'/users/{self.user_id_2}')
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
@@ -146,17 +126,119 @@ class UserViewTestCase(TestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.user_id_1
 
-            f = Follows(
-                user_being_followed_id=self.user_id_2,
-                user_following_id=self.user_id_1
-            )
-
-            db.session.add(f)
-            db.session.commit()
-
-            resp = self.client.get(f'/users/{self.user_id_1}/following')
+            resp = c.get(f'/users/{self.user_id_1}/following')
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
             self.assertIn('<div class="col-lg-4 col-md-6 col-12">', html)
 
+
+    def test_users_followers(self):
+        """Can logged in user view followers list?"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.user_id_1
+
+            f = Follows(
+                user_being_followed_id=self.user_id_1,
+                user_following_id=self.user_id_2
+            )
+
+            db.session.add(f)
+            db.session.commit()
+
+            resp = c.get(f'/users/{self.user_id_1}/followers')
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<p class="card-bio">', html)
+
+
+    def test_add_follow(self):
+        """Can logged in user add a follow?"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.user_id_1
+
+            resp = c.post(f'/users/follow/{self.user_id_2}', 
+                                    follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<div class="col-lg-4 col-md-6 col-12">', html)
+
+
+    def test_stop_following(self):
+        """Can logged in user remove a follow?"""
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.user_id_1
+
+            resp = c.post(f'/users/stop-following/{self.user_id_2}', 
+                                    follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<div class="col-sm-9">', html)
+
+            
+    def test_show_following_unath(self):
+        """Can unauth user view following list?"""
+
+        resp = self.client.get(f'/users/{self.user_id_1}/following')
+
+        self.assertEqual(resp.status_code, 302)
+
+        resp = self.client.get(f'/users/{self.user_id_1}/following', 
+                               follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertIn('<a href="/signup" class="btn btn-primary">Sign up</a>', html)
+
+
+    def test_users_followers_unath(self):
+        """Can unauth user view followers list?"""
+
+        resp = self.client.get(f'/users/{self.user_id_1}/followers')
+
+        self.assertEqual(resp.status_code, 302)
+
+        resp = self.client.get(f'/users/{self.user_id_1}/followers', 
+                               follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('<a href="/signup" class="btn btn-primary">Sign up</a>', html)
+
+
+    def test_add_follow_unath(self):
+        """Can unauth user add a follow?"""
+
+        resp = self.client.post(f'/users/follow/{self.user_id_2}')
+
+        self.assertEqual(resp.status_code, 302)
+
+        resp = self.client.post(f'/users/follow/{self.user_id_2}', 
+                                follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('<a href="/signup" class="btn btn-primary">Sign up</a>', html)
+
+
+    def test_stop_following_unath(self):
+        """Can unauth user remove a follow?"""
+
+        resp = self.client.post(f'/users/stop-following/{self.user_id_2}')
+
+        self.assertEqual(resp.status_code, 302)
+
+        resp = self.client.post(f'/users/stop-following/{self.user_id_2}', 
+                                follow_redirects=True)
+        html = resp.get_data(as_text=True)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('<a href="/signup" class="btn btn-primary">Sign up</a>', html)
